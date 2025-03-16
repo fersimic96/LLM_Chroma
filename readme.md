@@ -1,95 +1,106 @@
-# Chatbot Simich
+# ChatBot con FastAPI y React
 
-Un chatbot inteligente construido con FastAPI y React que permite consultar múltiples bases de datos vectoriales usando ChromaDB y OpenAI.
+Un chatbot inteligente que utiliza FastAPI para el backend y React para el frontend, con capacidad de procesamiento de documentos PDF y respuestas en tiempo real utilizando OpenAI.
 
+## Características
 
+- **Backend (FastAPI)**
+  - Streaming de respuestas en tiempo real
+  - Integración con OpenAI para generación de respuestas
+  - Sistema de bases de datos vectoriales con ChromaDB
+  - Procesamiento de documentos PDF
+  - Manejo de API keys y configuración segura
+  - Endpoints modulares y bien organizados
 
-## Tecnologías
+- **Frontend (React)**
+  - Interfaz moderna con Tailwind CSS
+  - Componentes UI interactivos
+  - Selector de bases de datos
+  - Visualización de respuestas en tiempo real
+  - Gestión de API keys
+  - Diseño responsivo
 
-### Backend
+## Requisitos
+
 - Python 3.12.3
-- FastAPI y Uvicorn
-- LangChain y ChromaDB
-- OpenAI
-- Spacy y herramientas NLP
-- Bibliotecas para procesamiento de documentos (pypdf, pdfplumber)
+- Node.js y npm
+- Entorno virtual (LLM_312)
+- API key de OpenAI
 
-### Frontend
-- React
-- Tailwind CSS
-- JavaScript moderno
+## Configuración
+
+1. **Backend**
+   ```bash
+   # Crear y activar entorno virtual
+   python -m venv LLM_312
+   source LLM_312/bin/activate  # En Windows: LLM_312\Scripts\activate
+   
+   # Instalar dependencias
+   pip install -r requirements.txt
+   
+   # Configurar variables de entorno
+   # Crear archivo .env con:
+   OPENAI_API_KEY=tu_api_key
+   ```
+
+2. **Frontend**
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+## Ejecución
+
+1. **Backend**
+   ```bash
+   # En el directorio raíz
+   uvicorn api.main:app --reload
+   # El servidor se ejecutará en http://localhost:8000
+   ```
+
+2. **Frontend**
+   ```bash
+   # En el directorio frontend
+   npm run dev
+   # La aplicación estará disponible en http://localhost:5003
+   ```
 
 ## Estructura del Proyecto
 
 ```
 ChatBot/
-├── api/                # Backend FastAPI
-│   └── main.py        # Endpoints y lógica principal
-├── frontend/          # Frontend React
+├── api/
+│   ├── routes/
+│   │   ├── api_key_routes.py
+│   │   ├── database_routes.py
+│   │   └── query_routes.py
+│   ├── main.py
+│   └── config.py
+├── frontend/
 │   ├── src/
-│   │   ├── App.jsx    # Componente principal
-│   │   └── ...
-│   └── ...
-└── chroma*/           # Bases de datos vectoriales
+│   │   ├── components/
+│   │   └── App.jsx
+│   └── package.json
+├── data/
+│   └── (archivos PDF)
+├── requirements.txt
+└── .env
 ```
 
-## Funcionalidades
+## Endpoints API
 
-### Consulta de Bases de Datos
-- Selección dinámica de bases de datos disponibles
-- Búsqueda semántica en documentos
-- Respuestas contextuales basadas en el contenido de los documentos
+- `POST /query`: Procesa consultas y devuelve respuestas en streaming
+- `POST /update_path`: Actualiza la ruta base de documentos
+- `POST /set-database-path`: Configura la ruta de la base de datos
+- `GET /databases`: Lista las bases de datos disponibles
 
-### Formato de Respuestas
-- Respuestas detalladas y bien estructuradas
-- Referencias a las fuentes con:
-  - Nombre del archivo PDF
-  - Número de página
-  - Número de chunk
-  - Fragmento relevante del texto
+## Características de Seguridad
 
-### Interfaz de Usuario
-- Diseño limpio y moderno
-- Selector de bases de datos
-- Historial de mensajes
-- Indicador de carga
-- Separación clara entre respuestas y fuentes
+- Protección de API keys mediante variables de entorno
+- Archivos sensibles excluidos via .gitignore
+- Validación de entradas
+- Manejo seguro de rutas de archivos
 
-## Configuración del Entorno
+## Licencia
 
-1. Activar el entorno virtual:
-```bash
-source LLM_312/bin/activate
-```
-
-2. Variables de entorno necesarias:
-```
-OPENAI_API_KEY=tu_api_key
-```
-
-## Ejecución
-
-### Backend
-```bash
-cd api
-uvicorn main:app --reload
-```
-
-### Frontend
-```bash
-cd frontend
-npm run dev
-```
-
-## Uso
-
-1. Seleccionar una base de datos del menú desplegable
-2. Escribir una consulta en el campo de texto
-3. Recibir una respuesta detallada con:
-   - Análisis completo del tema
-   - Referencias a las fuentes consultadas
-   - Fragmentos relevantes del contenido
-
-## Mantenimiento
-
-El proyecto utiliza un entorno virtual Python (LLM_312) que contiene todas las dependencias necesarias para el funcionamiento del backend.
+Este proyecto está bajo la Licencia MIT.
