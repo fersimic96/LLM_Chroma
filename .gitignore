@@ -72,3 +72,5 @@ build/
 data/*.pdf
 frontend/chroma.sqlite3
 api/chroma.sqlite3
+api/config.json
+**/config.json
