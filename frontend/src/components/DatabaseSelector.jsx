@@ -123,23 +123,29 @@ function DatabaseSelector({ onSelect, disabled, basePath }) {
         Base de datos
       </label>
       
-      <div className="relative">
+      <div className="relative w-full">
         <select
           value={selectedDb}
           onChange={handleSelect}
           disabled={disabled || loading}
-          className="select w-full"
+          className="select w-full truncate pr-8"
+          style={{ maxWidth: '100%' }}
         >
           <option value="">Seleccionar base de datos</option>
           {databases.map((db) => (
-            <option key={db} value={db}>
+            <option 
+              key={db} 
+              value={db} 
+              title={db}
+              style={{ width: 'auto', whiteSpace: 'normal', overflow: 'visible' }}
+            >
               {db}
             </option>
           ))}
         </select>
 
-        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-          <svg className="w-5 h-5 text-content-tertiary" viewBox="0 0 20 20" fill="currentColor">
+        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+          <svg className="w-4 h-4 text-content-tertiary" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </div>

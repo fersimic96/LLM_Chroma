@@ -156,6 +156,14 @@
            disabled:cursor-not-allowed disabled:opacity-50;
   }
 
+  /* Estilos para las opciones del select */
+  select option {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    min-width: max-content !important;
+    padding-right: 20px !important;
+  }
+
   /* Cards */
   .card {
     @apply rounded-xl border bg-background p-4 shadow-sm;
