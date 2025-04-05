@@ -6,7 +6,7 @@ function Sidebar({ onDatabasePathChange }) {
 
   const handleSelectDirectory = async () => {
     try {
-      const response = await fetch('http://localhost:8000/select_folder', {
+      const response = await fetch('/api/select_folder', {
         method: 'POST'
       });
 
