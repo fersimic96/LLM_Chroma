@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-content-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Scrollbar personalizado */
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.border.DEFAULT') transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background-color: theme('colors.border.DEFAULT');
+    border-radius: 3px;
+  }
+
+  /* Animaciones */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* Transiciones */
+  .transition-all-200 {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Efectos de hover */
+  .hover-effect {
+    @apply transition-all-200 hover:bg-opacity-90 active:scale-95;
+  }
+
+  /* Botones */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium
+           transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-800 text-white hover:bg-gray-700 focus-visible:ring-gray-800;
+  }
+
+  /* Inputs */
+  .input {
+    @apply flex h-12 w-full rounded-xl border bg-background px-4 py-2 text-content-primary
+           ring-offset-background placeholder:text-content-tertiary focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .input::placeholder {
+    text-align: right;
+    font-size: 0.75rem;
+  }
+
+  .input[disabled] {
+    position: relative;
+  }
+
+  .input[disabled]::after {
+    content: "Shift + Enter para nueva línea";
+    position: absolute;
+    right: 1rem;
+    bottom: 0.75rem;
+    font-size: 0.7rem;
+    color: #6b7280;
+    pointer-events: none;
+  }
+
+  .input[disabled]::placeholder {
+    text-align: left;
+    font-size: 0.875rem;
+  }
+
+  .input-with-hint::placeholder {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Select */
+  .select {
+    @apply flex h-12 w-full appearance-none rounded-xl border bg-background px-4 py-2
+           text-content-primary ring-offset-background focus-visible:outline-none
+           focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Estilos para las opciones del select */
+  select option {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    min-width: max-content !important;
+    padding-right: 20px !important;
+  }
+
+  /* Cards */
+  .card {
+    @apply rounded-xl border bg-background p-4 shadow-sm;
+  }
+
+  /* Messages */
+  .message {
+    @apply flex w-full max-w-4xl animate-fade-in animate-slide-in;
+  }
+
+  .message-bubble {
+    @apply rounded-2xl px-4 py-3 shadow-sm;
+  }
+
+  .message-user {
+    @apply bg-blue-600 text-white;
+  }
+
+  .message-assistant {
+    @apply bg-gray-800 border-gray-700 text-white;
+  }
+
+  .message-error {
+    @apply bg-red-900/30 border-red-800/50 text-red-200;
+  }
+}
