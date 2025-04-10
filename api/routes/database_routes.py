@@ -496,3 +496,112 @@ async def query(request: QueryRequest):
     except Exception as e:
         logger.error(f"Error en el proceso de consulta: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/collection-files/{collection_name}")
+async def get_collection_files(collection_name: str):
+    """Obtiene los archivos almacenados en una colección específica, agrupados por archivo"""
+    try:
+        client = get_qdrant_client()
+        
+        # Verificar si la colección existe
+        collections = client.get_collections().collections
+        if not any(col.name == collection_name for col in collections):
+            raise HTTPException(status_code=404, detail=f"Colección {collection_name} no encontrada")
+        
+        # Obtener el recuento total de vectores en la colección
+        collection_info = client.get_collection(collection_name)
+        vectors_count = collection_info.vectors_count if hasattr(collection_info, 'vectors_count') else 0
+        
+        if vectors_count == 0:
+            return {"files": []}
+        
+        # Consultar los primeros 1000 vectores para obtener metadatos
+        # Esto es para obtener una muestra representativa de los archivos
+        scroll_result = client.scroll(
+            collection_name=collection_name,
+            limit=1000,
+            with_payload=True,
+            with_vectors=False
+        )
+        
+        points = scroll_result[0]  # Obtener los puntos de la respuesta
+        
+        # Agrupar los puntos por archivo
+        files_map = {}
+        for point in points:
+            if 'source' in point.payload:
+                file_name = point.payload['source']
+                
+                if file_name not in files_map:
+                    files_map[file_name] = {
+                        'name': file_name,
+                        'vectors': 0,
+                        'pages': set(),
+                        'chunks': 0
+                    }
+                
+                files_map[file_name]['vectors'] += 1
+                
+                if 'page' in point.payload:
+                    files_map[file_name]['pages'].add(point.payload['page'])
+                
+                files_map[file_name]['chunks'] += 1
+        
+        # Convertir a lista y formatear
+        files_list = []
+        for file_name, file_info in files_map.items():
+            files_list.append({
+                'name': file_info['name'],
+                'vectors': file_info['vectors'],
+                'pages': len(file_info['pages']),
+                'chunks': file_info['chunks']
+            })
+        
+        # Ordenar por nombre
+        files_list.sort(key=lambda x: x['name'])
+        
+        return {"files": files_list}
+    
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error al obtener archivos de la colección {collection_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al obtener archivos: {str(e)}")
+
+@router.delete("/collection-files/{collection_name}/{file_name}")
+async def delete_collection_file(collection_name: str, file_name: str):
+    """Elimina todos los vectores de un archivo específico en una colección"""
+    try:
+        client = get_qdrant_client()
+        
+        # Verificar si la colección existe
+        collections = client.get_collections().collections
+        if not any(col.name == collection_name for col in collections):
+            raise HTTPException(status_code=404, detail=f"Colección {collection_name} no encontrada")
+        
+        # Eliminar por filtro - eliminar todos los puntos con el mismo source
+        delete_result = client.delete(
+            collection_name=collection_name,
+            points_selector=models.FilterSelector(
+                filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="source",
+                            match=models.MatchValue(value=file_name)
+                        )
+                    ]
+                )
+            )
+        )
+        
+        # Verificar si se eliminaron puntos
+        if delete_result.status != "completed":
+            logger.warning(f"Operación de eliminación completada con estado: {delete_result.status}")
+        
+        return {"message": f"Archivo {file_name} eliminado de la colección {collection_name}"}
+    
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error al eliminar archivo {file_name} de la colección {collection_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar archivo: {str(e)}")

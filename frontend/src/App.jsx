@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import QueryForm from './components/QueryForm'
 import ResponseDisplay from './components/ResponseDisplay'
-import DatabaseSelector from './components/DatabaseSelector'
 import ApiKeyInput from './components/ApiKeyInput'
 import EmbeddingUploader from './components/EmbeddingUploader'
+import CollectionsManager from './components/CollectionsManager'
+import CollectionFilesManager from './components/CollectionFilesManager'
 
 function App() {
   const [messages, setMessages] = useState([])
@@ -105,41 +107,54 @@ function App() {
     }
   }
 
+  // Componente para la página principal (Home)
+  const HomePage = () => (
+    <>
+      <div className="p-4 border-b border-border">
+        <ApiKeyInput onApiKeySet={setIsApiKeyConfigured} />
+      </div>
+
+      {isApiKeyConfigured && (
+        <>
+          <div className="grid grid-cols-1 gap-4 p-4 border-b border-border">
+            <div>
+              <EmbeddingUploader />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4">
+            <ResponseDisplay 
+              messages={messages} 
+              loading={isLoading} 
+              currentResponse={currentResponse}
+            />
+          </div>
+
+          <div className="p-4 border-t border-border">
+            <QueryForm
+              onSubmit={handleSubmit}
+              disabled={!isApiKeyConfigured}
+            />
+          </div>
+        </>
+      )}
+    </>
+  );
+
   return (
-    <div className="flex h-screen bg-background text-content-primary">
-      <Sidebar />
-      
-      <main className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-border">
-          <ApiKeyInput onApiKeySet={setIsApiKeyConfigured} />
-        </div>
-
-        {isApiKeyConfigured && (
-          <>
-            <div className="grid grid-cols-2 gap-4 p-4 border-b border-border">
-              <div>
-                <EmbeddingUploader />
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-auto p-4">
-              <ResponseDisplay 
-                messages={messages} 
-                loading={isLoading} 
-                currentResponse={currentResponse}
-              />
-            </div>
-
-            <div className="p-4 border-t border-border">
-              <QueryForm
-                onSubmit={handleSubmit}
-                disabled={!isApiKeyConfigured}
-              />
-            </div>
-          </>
-        )}
-      </main>
-    </div>
+    <Router>
+      <div className="flex h-screen bg-background text-content-primary">
+        <Sidebar />
+        
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/collections" element={<CollectionsManager />} />
+            <Route path="/collections/:collectionName" element={<CollectionFilesManager />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   )
 }
 
