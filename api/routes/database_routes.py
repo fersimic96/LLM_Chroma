@@ -44,15 +44,24 @@ Pregunta:
 
 router = APIRouter()
 
+# Instancia singleton del cliente Qdrant
+_qdrant_client = None
+
 def get_qdrant_client():
-    """Obtiene el cliente de Qdrant con la ruta configurada"""
+    """Obtiene el cliente de Qdrant con la ruta configurada usando patrón singleton"""
+    global _qdrant_client
     try:
+        # Si ya existe una instancia, devolverla
+        if _qdrant_client is not None:
+            return _qdrant_client
+            
         # Asegurarse de que el directorio existe
         os.makedirs(QDRANT_PATH, exist_ok=True)
         
-        client = QdrantClient(path=QDRANT_PATH)
+        # Crear nueva instancia
+        _qdrant_client = QdrantClient(path=QDRANT_PATH)
         logger.info(f"Cliente Qdrant inicializado con ruta: {QDRANT_PATH}")
-        return client
+        return _qdrant_client
     except Exception as e:
         logger.error(f"Error al inicializar cliente Qdrant: {str(e)}")
         raise HTTPException(
@@ -228,10 +237,24 @@ def process_pdf(pdf_path):
     
     return final_chunks
 
+# Caché para colecciones
+collections_cache = {
+    "data": None,
+    "timestamp": 0,
+    "ttl": 10  # Tiempo de vida en segundos
+}
+
 @router.get("/qdrant-collections")
 async def list_collections():
-    """Lista todas las colecciones disponibles en Qdrant"""
+    """Lista todas las colecciones disponibles en Qdrant con caché"""
     try:
+        # Verificar si hay datos en caché y si son válidos
+        now = int(__import__('time').time())
+        if collections_cache["data"] is not None and now - collections_cache["timestamp"] < collections_cache["ttl"]:
+            logger.info("Devolviendo colecciones desde caché")
+            return collections_cache["data"]
+        
+        # Si no hay caché o expiró, obtener datos frescos
         client = get_qdrant_client()
         collections_list = client.get_collections()
         
@@ -257,7 +280,11 @@ async def list_collections():
                     "status": "error"
                 })
         
-        return {"collections": collections_info}
+        # Actualizar caché
+        collections_cache["data"] = {"collections": collections_info}
+        collections_cache["timestamp"] = now
+        
+        return collections_cache["data"]
     except Exception as e:
         logger.error(f"Error al listar colecciones: {str(e)}")
         raise HTTPException(
@@ -497,10 +524,21 @@ async def query(request: QueryRequest):
         logger.error(f"Error en el proceso de consulta: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Caché para archivos por colección
+collection_files_cache = {}
+
 @router.get("/collection-files/{collection_name}")
 async def get_collection_files(collection_name: str):
     """Obtiene los archivos almacenados en una colección específica, agrupados por archivo"""
     try:
+        # Verificar si hay datos en caché y si son válidos (TTL: 15 segundos)
+        now = int(__import__('time').time())
+        if (collection_name in collection_files_cache and 
+            collection_files_cache[collection_name]["data"] is not None and 
+            now - collection_files_cache[collection_name]["timestamp"] < 15):
+            logger.info(f"Devolviendo archivos de colección {collection_name} desde caché")
+            return collection_files_cache[collection_name]["data"]
+            
         client = get_qdrant_client()
         
         # Verificar si la colección existe
@@ -513,7 +551,12 @@ async def get_collection_files(collection_name: str):
         vectors_count = collection_info.vectors_count if hasattr(collection_info, 'vectors_count') else 0
         
         if vectors_count == 0:
-            return {"files": []}
+            empty_response = {"files": []}
+            collection_files_cache[collection_name] = {
+                "data": empty_response,
+                "timestamp": now
+            }
+            return empty_response
         
         # Consultar los primeros 1000 vectores para obtener metadatos
         # Esto es para obtener una muestra representativa de los archivos
@@ -560,7 +603,15 @@ async def get_collection_files(collection_name: str):
         # Ordenar por nombre
         files_list.sort(key=lambda x: x['name'])
         
-        return {"files": files_list}
+        response = {"files": files_list}
+        
+        # Guardar en caché
+        collection_files_cache[collection_name] = {
+            "data": response,
+            "timestamp": now
+        }
+        
+        return response
     
     except HTTPException as he:
         raise he
@@ -597,6 +648,10 @@ async def delete_collection_file(collection_name: str, file_name: str):
         # Verificar si se eliminaron puntos
         if delete_result.status != "completed":
             logger.warning(f"Operación de eliminación completada con estado: {delete_result.status}")
+        
+        # Invalidar caché después de eliminar
+        if collection_name in collection_files_cache:
+            del collection_files_cache[collection_name]
         
         return {"message": f"Archivo {file_name} eliminado de la colección {collection_name}"}
     

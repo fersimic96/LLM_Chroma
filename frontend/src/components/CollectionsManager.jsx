@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 function CollectionsManager() {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
-  useEffect(() => {
-    fetchCollections();
-  }, []);
-
-  const fetchCollections = async () => {
+  // Usar useCallback para debounce
+  const fetchCollections = useCallback(async () => {
+    // Si ha pasado menos de 5 segundos desde la última petición, no hacer nada
+    const now = Date.now();
+    if (now - lastFetchTime < 5000 && collections.length > 0) {
+      return;
+    }
+    setLastFetchTime(now);
+    
     setLoading(true);
     try {
       const response = await fetch('/api/qdrant-collections');
@@ -26,15 +31,28 @@ function CollectionsManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [lastFetchTime, collections.length]);
+
+  useEffect(() => {
+    fetchCollections();
+  }, [fetchCollections]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-medium">Gestión de Colecciones</h2>
-        <Link to="/" className="btn btn-outline btn-sm">
-          Volver al inicio
-        </Link>
+        <div className="flex gap-2">
+          <button 
+            onClick={fetchCollections} 
+            className="btn btn-outline btn-sm"
+            disabled={loading}
+          >
+            {loading ? 'Cargando...' : 'Actualizar'}
+          </button>
+          <Link to="/" className="btn btn-outline btn-sm">
+            Volver al inicio
+          </Link>
+        </div>
       </div>
 
       {loading ? (

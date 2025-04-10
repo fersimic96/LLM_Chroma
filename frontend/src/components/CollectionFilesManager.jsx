@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 
 function CollectionFilesManager() {
@@ -6,13 +6,19 @@ function CollectionFilesManager() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
-  useEffect(() => {
+  // Usar useCallback para implementar debounce
+  const fetchCollectionFiles = useCallback(async () => {
     if (!collectionName) return;
-    fetchCollectionFiles();
-  }, [collectionName]);
-
-  const fetchCollectionFiles = async () => {
+    
+    // Si ha pasado menos de 5 segundos desde la última petición, no hacer nada
+    const now = Date.now();
+    if (now - lastFetchTime < 5000 && files.length > 0) {
+      return;
+    }
+    setLastFetchTime(now);
+    
     setLoading(true);
     try {
       const response = await fetch(`/api/collection-files/${collectionName}`);
@@ -28,7 +34,11 @@ function CollectionFilesManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [collectionName, lastFetchTime, files.length]);
+
+  useEffect(() => {
+    fetchCollectionFiles();
+  }, [fetchCollectionFiles]);
 
   const handleDeleteFile = async (fileName) => {
     if (!confirm(`¿Estás seguro de eliminar el archivo "${fileName}" de la colección "${collectionName}"?`)) {
@@ -75,9 +85,18 @@ function CollectionFilesManager() {
         <h2 className="text-xl font-medium">
           Archivos en la colección: <span className="text-primary">{collectionName}</span>
         </h2>
-        <Link to="/collections" className="btn btn-outline btn-sm">
-          Volver a colecciones
-        </Link>
+        <div className="flex gap-2">
+          <button 
+            onClick={fetchCollectionFiles} 
+            className="btn btn-outline btn-sm"
+            disabled={loading}
+          >
+            {loading ? 'Cargando...' : 'Actualizar'}
+          </button>
+          <Link to="/collections" className="btn btn-outline btn-sm">
+            Volver a colecciones
+          </Link>
+        </div>
       </div>
 
       {loading && (
