@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 function ApiKeyInput({ onApiKeySet }) {
   const [apiKey, setApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [isConfigured, setIsConfigured] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const checkedRef = useRef(false);
   
-  // Verificar si hay una API key guardada al cargar el componente
+  // Verificar si hay una API key guardada al cargar el componente, solo una vez
   useEffect(() => {
+    if (checkedRef.current) return;
+    checkedRef.current = true;
+    
     const savedKey = localStorage.getItem('openai_api_key');
     if (savedKey) {
       setApiKey(savedKey);
@@ -18,8 +23,12 @@ function ApiKeyInput({ onApiKeySet }) {
 
   // Verificar el estado de la API key en el servidor
   const checkApiKeyStatus = async () => {
+    // Evitar múltiples verificaciones simultáneas
+    if (isCheckingStatus) return;
+    setIsCheckingStatus(true);
+    
     try {
-      const response = await fetch('/api_key_status');
+      const response = await fetch('/api/api_key_status');
       if (response.ok) {
         const data = await response.json();
         setIsConfigured(data.is_configured);
@@ -27,6 +36,8 @@ function ApiKeyInput({ onApiKeySet }) {
       }
     } catch (err) {
       console.error('Error al verificar estado de API key:', err);
+    } finally {
+      setIsCheckingStatus(false);
     }
   };
 
@@ -42,7 +53,7 @@ function ApiKeyInput({ onApiKeySet }) {
     setError(null);
     
     try {
-      const response = await fetch('/validate_api_key', {
+      const response = await fetch('/api/validate_api_key', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
