@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import os
-from openai import OpenAI
+from langchain_community.embeddings import OpenAIEmbeddings
 import logging
 import sys
 import os
@@ -23,46 +23,53 @@ class ApiKeyRequest(BaseModel):
 class ApiKeyUpdate(BaseModel):
     api_key: str
 
+# Variables para almacenar la API key validada
+api_key_storage = {
+    "openai_api_key": "",
+    "is_valid": False,
+    "timestamp": 0
+}
+
+def get_api_key_settings():
+    """Devuelve la configuración actual de la API key"""
+    return api_key_storage
+
+def set_api_key_in_env():
+    """Establece la API key en las variables de entorno"""
+    if api_key_storage["is_valid"] and api_key_storage["openai_api_key"]:
+        os.environ["OPENAI_API_KEY"] = api_key_storage["openai_api_key"]
+        return True
+    return False
+
 @router.post("/validate_api_key")
 async def validate_api_key(request: ApiKeyRequest):
+    """Valida una API key de OpenAI"""
     try:
+        # Si es la misma API key que ya está validada, devuelve éxito inmediatamente
+        if request.api_key == api_key_storage["openai_api_key"] and api_key_storage["is_valid"]:
+            return {"success": True, "message": "API key ya validada"}
+            
         logger.info("Validando nueva API key...")
         
-        # Crear un cliente de OpenAI con la API key proporcionada
-        client = OpenAI(api_key=request.api_key)
+        # Guardar temporalmente la API key en variables de entorno
+        os.environ["OPENAI_API_KEY"] = request.api_key
         
-        # Intentar hacer una llamada simple para validar la API key
-        response = client.embeddings.create(
-            model="text-embedding-ada-002",
-            input="Test"
-        )
+        # Intentar usar la API key con una operación simple
+        embedding_function = OpenAIEmbeddings()
+        _ = embedding_function.embed_query("Test")
         
-        # Si llegamos aquí, la API key es válida
-        # Guardar la API key usando ApiKeyConfig
-        ApiKeyConfig.set_api_key(request.api_key)
+        # Si llega aquí, la API key es válida
+        api_key_storage["openai_api_key"] = request.api_key
+        api_key_storage["is_valid"] = True
+        api_key_storage["timestamp"] = int(__import__('time').time())
+        
         logger.info("API key validada y actualizada correctamente")
-        
-        # Devolver una respuesta más detallada
-        return {
-            "status": "success",
-            "message": "API key válida y configurada correctamente",
-            "details": {
-                "model": "text-embedding-ada-002",
-                "organization": client.organization,  # Esto mostrará la organización asociada a la API key
-                "validated": True
-            }
-        }
-        
+        return {"success": True, "message": "API key validada correctamente"}
+    
     except Exception as e:
         logger.error(f"Error al validar API key: {str(e)}")
-        raise HTTPException(
-            status_code=400, 
-            detail={
-                "status": "error",
-                "message": "API key inválida",
-                "error": str(e)
-            }
-        )
+        api_key_storage["is_valid"] = False
+        return {"success": False, "message": f"API key inválida: {str(e)}"}
 
 @router.post("/set-api-key")
 async def set_api_key(api_key_update: ApiKeyUpdate):
@@ -87,3 +94,11 @@ async def verify_api_key():
     except Exception as e:
         logger.error(f"Error al verificar la API key: {str(e)}")
         raise HTTPException(status_code=500, detail="Error al verificar la API key")
+
+@router.get("/api_key_status")
+async def api_key_status():
+    """Devuelve el estado de la API key"""
+    return {
+        "is_configured": api_key_storage["is_valid"],
+        "timestamp": api_key_storage["timestamp"]
+    }
